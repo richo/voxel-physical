@@ -76,13 +76,16 @@ proto.tick = function(dt) {
   world_desired.z = 0
 
   for (var i = 0; i < this.attractors.length; i++) {
+    var distance_factor = this.avatar.position.distanceToSquared(this.attractors[i])
     localAttractor = this.attractors[0].clone()
-
     localAttractor = this.avatar.worldToLocal(localAttractor)
 
     direction.sub(localAttractor, this.avatar.position)
 
-    direction.divideScalar(100000000)
+    direction.divideScalar(direction.length())
+    direction.divideScalar(distance_factor)
+    direction.multiplyScalar(this.attractors[i].mass)
+
     total_forces.addSelf(direction)
   }
 
