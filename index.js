@@ -9,7 +9,7 @@ function physical(avatar, collidables, dimensions, terminal) {
 
 function Physical(avatar, collidables, dimensions, terminal) {
   this.avatar = avatar
-  this.terminal = terminal || new THREE.Vector3(30, 5.6, 30)
+  this.terminal = terminal || new THREE.Vector3(30, 30, 30)
   this.dimensions = dimensions = dimensions || new THREE.Vector3(1, 1, 1)
   this._aabb = aabb([0, 0, 0], [dimensions.x, dimensions.y, dimensions.z])
   this.resting = {x: false, y: false, z: false}
@@ -41,6 +41,8 @@ var WORLD_DESIRED = new THREE.Vector3(0, 0, 0)
   , DESIRED = new THREE.Vector3(0, 0, 0)
   , START = new THREE.Vector3(0, 0, 0)
   , END = new THREE.Vector3(0, 0, 0)
+  , direction = new THREE.Vector3()
+  , localAttractor = new THREE.Vector3()
 
 proto.applyWorldAcceleration = applyTo('acceleration')
 proto.applyWorldVelocity = applyTo('velocity')
@@ -65,7 +67,6 @@ proto.tick = function(dt) {
     , bbox
     , pcs
   var total_forces = forces.clone()
-  var direction
 
   desired.x =
   desired.y =
@@ -75,17 +76,14 @@ proto.tick = function(dt) {
   world_desired.z = 0
 
   for (var i = 0; i < this.attractors.length; i++) {
-    // Assume attractor mass is significant enough not to move the object
-    // Assume avatar mass is 1 to make it simple
-    var distance_factor = this.avatar.position.distanceToSquared(this.attractors[i])
-    direction = new THREE.Vector3()
-    direction.sub(this.attractors[i], this.avatar.position)
-    direction.divideScalar(direction.length() * distance_factor)
-    direction.multiplyScalar(this.attractors[i].mass)
-    total_forces.x += direction.x
-    total_forces.y += direction.y
-    total_forces.z += direction.z
-    // total_forces.add(direction)
+    localAttractor = this.attractors[0].clone()
+
+    localAttractor = this.avatar.worldToLocal(localAttractor)
+
+    direction.sub(localAttractor, this.avatar.position)
+
+    direction.divideScalar(100000000)
+    total_forces.addSelf(direction)
   }
 
   if(!this.resting.x) {
