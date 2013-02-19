@@ -25,6 +25,7 @@ function Physical(avatar, collidables, dimensions, terminal) {
   this.roll = avatar
 
   this.forces = new THREE.Vector3(0, 0, 0)
+  this.attractors = []
   this.acceleration = new THREE.Vector3(0, 0, 0)
   this.velocity = new THREE.Vector3(0, 0, 0)
 }
@@ -63,6 +64,8 @@ proto.tick = function(dt) {
     , world_desired = WORLD_DESIRED
     , bbox
     , pcs
+  var total_forces = forces.clone()
+  var direction
 
   desired.x =
   desired.y =
@@ -71,9 +74,23 @@ proto.tick = function(dt) {
   world_desired.y =
   world_desired.z = 0
 
+  for (var i = 0; i < this.attractors.length; i++) {
+    // Assume attractor mass is significant enough not to move the object
+    // Assume avatar mass is 1 to make it simple
+    var distance_factor = this.avatar.position.distanceToSquared(this.attractors[i])
+    direction = new THREE.Vector3()
+    direction.sub(this.attractors[i], this.avatar.position)
+    direction.divideScalar(direction.length() * distance_factor)
+    direction.multiplyScalar(this.attractors[i].mass)
+    total_forces.x += direction.x
+    total_forces.y += direction.y
+    total_forces.z += direction.z
+    // total_forces.add(direction)
+  }
+
   if(!this.resting.x) {
-    acceleration.x /= 8 * dt
-    acceleration.x += forces.x * dt
+    acceleration.x /= 8
+    acceleration.x += total_forces.x * dt
 
     velocity.x += acceleration.x * dt
     velocity.x *= friction.x
@@ -87,8 +104,8 @@ proto.tick = function(dt) {
     acceleration.x = velocity.x = 0
   }
   if(!this.resting.y) {
-    acceleration.y /= 8 * dt
-    acceleration.y += forces.y * dt
+    acceleration.y /= 8
+    acceleration.y += total_forces.y * dt
 
     velocity.y += acceleration.y * dt
     velocity.y *= friction.y
@@ -102,8 +119,8 @@ proto.tick = function(dt) {
     acceleration.y = velocity.y = 0
   }
   if(!this.resting.z) {
-    acceleration.z /= 8 * dt
-    acceleration.z += forces.z * dt
+    acceleration.z /= 8
+    acceleration.z += total_forces.z * dt
 
     velocity.z += acceleration.z * dt
     velocity.z *= friction.z
@@ -156,6 +173,11 @@ proto.subjectTo = function(force) {
   this.forces.y += force.y
   this.forces.z += force.z
   return this
+}
+
+proto.attractTo = function(vector, mass) {
+  vector.mass = mass
+  this.attractors.push(vector)
 }
 
 proto.aabb = function() {
